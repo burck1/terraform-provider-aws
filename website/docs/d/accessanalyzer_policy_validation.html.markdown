@@ -38,6 +38,36 @@ resource "aws_iam_policy" "example" {
 }
 ```
 
+### Using a Check
+
+A [`check` block](https://developer.hashicorp.com/terraform/language/validate#checks) reports findings as warnings without blocking the plan or apply.
+
+```terraform
+data "aws_iam_policy_document" "example" {
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["arn:aws:s3:::example-bucket/*"]
+  }
+}
+
+resource "aws_iam_policy" "example" {
+  name   = "example"
+  policy = data.aws_iam_policy_document.example.json
+}
+
+check "example_policy_validation" {
+  data "aws_accessanalyzer_policy_validation" "example" {
+    policy      = aws_iam_policy.example.policy
+    policy_type = "IDENTITY_POLICY"
+  }
+
+  assert {
+    condition     = length(data.aws_accessanalyzer_policy_validation.example.findings) == 0
+    error_message = "Policy has IAM Access Analyzer findings."
+  }
+}
+```
+
 ### Validating a Resource Policy
 
 ```terraform
